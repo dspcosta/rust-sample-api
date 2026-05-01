@@ -1,0 +1,17 @@
+[package]
+name = "rust_webserver"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+axum = { version = "0.8.9", features = [] }
+log = "0.4.29"
+serde = { version = "1.0.228", features = ["derive"] }
+tokio = { version = "1.52.1", features = ["full"] }
+diesel = { version = "2.2.0", features = ["postgres", "chrono", "r2d2"] }
+# build libpq and openssl as part of the build process
+# uncomment these lines if you run into setup issues
+# pq-sys = { version = "0.6", features = ["bundled"] }
+# openssl-sys = { version = "0.9.100", features = ["vendored"] }
+dotenvy = "0.15"
+chrono = { version = "0.4.44", features = ["serde"] }
