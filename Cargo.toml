@@ -8,7 +8,7 @@ axum = { version = "0.8.9", features = [] }
 log = "0.4.29"
 serde = { version = "1.0.228", features = ["derive"] }
 tokio = { version = "1.52.1", features = ["full"] }
-diesel = { version = "2.2.0", features = ["postgres", "chrono", "r2d2"] }
+diesel = { version = "2.2.0", features = ["postgres", "chrono", "r2d2", "numeric"] }
 # build libpq and openssl as part of the build process
 # uncomment these lines if you run into setup issues
 # pq-sys = { version = "0.6", features = ["bundled"] }
