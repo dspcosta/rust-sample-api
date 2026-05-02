@@ -64,11 +64,3 @@ Fetches the first 1000 customers from the database as JSON.
 ```bash
 curl http://localhost:3000/customers
 ```
-
-**POST /foo_post**
-Accepts JSON data and echoes it back.
-```bash
-curl -X POST http://localhost:3000/foo_post \
-     -H "Content-Type: application/json" \
-     -d '{"data": "test payload"}'
-```
