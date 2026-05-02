@@ -1,0 +1,19 @@
+services:
+  postgres:
+    image: postgres:latest
+    container_name: dvdrental_db
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: dvdrental
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql
+      # Mount the backup file
+      - ./database/dvdrental.tar:/docker-entrypoint-initdb.d/dvdrental.tar
+      # Mount the script (files are run alphabetically, so 'restore.sh' runs after DB creation)
+      - ./restore.sh:/docker-entrypoint-initdb.d/restore.sh
+
+volumes:
+  pgdata:
