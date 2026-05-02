@@ -9,7 +9,7 @@ use diesel::r2d2::{self, ConnectionManager};
 use dotenvy::dotenv;
 use std::env;
 
-// Create a type alias for our connection pool
+// Create a type alias for connection pool
 pub type DbPool = r2d2::Pool<ConnectionManager<PgConnection>>;
 
 fn init_pool() -> DbPool {
@@ -18,7 +18,7 @@ fn init_pool() -> DbPool {
     let database_url = env::var("DATABASE_URL").expect("DATABASE_URL must be set");
     let manager = ConnectionManager::<PgConnection>::new(database_url);
 
-    // Create a pool with 5 connections
+    // Create a pool with 10 connections (default)
     r2d2::Pool::builder()
         .build(manager)
         .expect("Failed to create pool.")
