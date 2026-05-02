@@ -31,7 +31,7 @@ diesel::table! {
         address2 -> Nullable<Varchar>,
         #[max_length = 20]
         district -> Varchar,
-        city_id -> Int4,
+        city_id -> Int2,
         #[max_length = 10]
         postal_code -> Nullable<Varchar>,
         #[max_length = 20]
@@ -73,14 +73,14 @@ diesel::table! {
 diesel::table! {
     customer (customer_id) {
         customer_id -> Int4,
-        store_id -> Int4,
+        store_id -> Int2,
         #[max_length = 45]
         first_name -> Varchar,
         #[max_length = 45]
         last_name -> Varchar,
         #[max_length = 50]
         email -> Nullable<Varchar>,
-        address_id -> Int4,
+        address_id -> Int2,
         activebool -> Bool,
         create_date -> Date,
         last_update -> Nullable<Timestamp>,
@@ -131,7 +131,7 @@ diesel::table! {
     inventory (inventory_id) {
         inventory_id -> Int4,
         film_id -> Int4,
-        store_id -> Int4,
+        store_id -> Int2,
         last_update -> Timestamp,
     }
 }
@@ -175,10 +175,10 @@ diesel::table! {
         first_name -> Varchar,
         #[max_length = 45]
         last_name -> Varchar,
-        address_id -> Int4,
+        address_id -> Int2,
         #[max_length = 50]
         email -> Nullable<Varchar>,
-        store_id -> Int4,
+        store_id -> Int2,
         active -> Bool,
         #[max_length = 16]
         username -> Varchar,
@@ -191,16 +191,17 @@ diesel::table! {
 
 diesel::table! {
     store (store_id) {
-        store_id -> Int4,
+        store_id -> Int2,
         manager_staff_id -> Int4,
-        address_id -> Int4,
+        address_id -> Int2,
         last_update -> Timestamp,
     }
 }
 
-diesel::joinable!(address -> city (city_id));
+// Removing as dvdrental has some inconsistencies in the column types :)
+// diesel::joinable!(address -> city (city_id));
 diesel::joinable!(city -> country (country_id));
-diesel::joinable!(customer -> address (address_id));
+// diesel::joinable!(customer -> address (address_id));
 diesel::joinable!(film -> language (language_id));
 diesel::joinable!(film_actor -> actor (actor_id));
 diesel::joinable!(film_actor -> film (film_id));
@@ -213,8 +214,8 @@ diesel::joinable!(payment -> staff (staff_id));
 diesel::joinable!(rental -> customer (customer_id));
 diesel::joinable!(rental -> inventory (inventory_id));
 diesel::joinable!(rental -> staff (staff_id));
-diesel::joinable!(staff -> address (address_id));
-diesel::joinable!(store -> address (address_id));
+// diesel::joinable!(staff -> address (address_id));
+// diesel::joinable!(store -> address (address_id));
 diesel::joinable!(store -> staff (manager_staff_id));
 
 diesel::allow_tables_to_appear_in_same_query!(
