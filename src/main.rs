@@ -1,4 +1,4 @@
-use axum::{Router, extract::Extension, routing::get};
+use axum::{extract::Extension, routing::get, Router};
 
 mod models;
 mod requests;
@@ -12,6 +12,7 @@ use std::env;
 // Create a type alias for connection pool
 pub type DbPool = r2d2::Pool<ConnectionManager<PgConnection>>;
 
+/// Initializes the database connection pool from DATABASE_URL env var
 fn init_pool() -> DbPool {
     dotenv().ok();
 
@@ -26,12 +27,16 @@ fn init_pool() -> DbPool {
 
 #[tokio::main]
 async fn main() {
+    env_logger::Builder::from_env(env_logger::Env::default().default_filter_or("info"))
+        .format_timestamp_secs()
+        .init();
+
     let pool = init_pool();
 
     let app = Router::new()
         .route(
             "/",
-            get(|| async { "Hello to a simple Rust web server!\n" }),
+            get(|| async { "Hello from a simple demo API built with Rust and Axum!" }),
         )
         .route("/customers", get(requests::get_customers))
         .route("/addresses", get(requests::get_addresses))
