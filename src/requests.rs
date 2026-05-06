@@ -20,6 +20,11 @@ pub struct CustomerQuery {
     create_date: Option<String>,
 }
 
+#[derive(Deserialize)]
+pub struct AddressQuery {
+    district: Option<String>,
+}
+
 /// Fetches all customers from the database
 pub async fn get_customers(
     Extension(pool): Extension<DbPool>,
@@ -57,18 +62,24 @@ pub async fn get_customers(
 /// Fetches all addresses from the database
 pub async fn get_addresses(
     Extension(pool): Extension<DbPool>,
+    Query(query): Query<AddressQuery>,
 ) -> Result<Json<Vec<Address>>, AppError> {
     info!("GET /addresses - fetching addresses");
 
     let mut conn = pool.get().map_err(AppError::PoolError)?;
 
-    let results = address
-        .select(Address::as_select())
-        .load(&mut conn)
-        .map_err(|e| {
-            error!("Failed to fetch addresses: {}", e);
-            AppError::Database(e)
-        })?;
+    let mut query_builder = address.select(Address::as_select()).into_boxed();
+
+    if let Some(district_val) = query.district {
+        info!("GET /addresses - filtering by district: {}", district_val);
+        let pattern = format!("%{}%", district_val);
+        query_builder = query_builder.filter(district.ilike(pattern));
+    }
+
+    let results = query_builder.load(&mut conn).map_err(|e| {
+        error!("Failed to fetch addresses: {}", e);
+        AppError::Database(e)
+    })?;
 
     if results.len() == 0 {
         warn!("GET /addresses - found 0 addresses");
