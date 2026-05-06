@@ -1,6 +1,7 @@
 use axum::Json;
 use axum::response::{IntoResponse, Response};
 use diesel::r2d2;
+use log::error;
 
 #[derive(serde::Serialize)]
 pub struct ErrorMessage {
@@ -26,5 +27,12 @@ impl IntoResponse for AppError {
             }
         };
         (status, Json(ErrorMessage { message })).into_response()
+    }
+}
+
+impl From<r2d2::PoolError> for AppError {
+    fn from(e: r2d2::PoolError) -> Self {
+        error!("Failed to get DB connection from pool: {}", e);
+        AppError::PoolError(e)
     }
 }
