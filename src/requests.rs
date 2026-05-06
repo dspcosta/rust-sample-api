@@ -25,6 +25,11 @@ pub struct AddressQuery {
     district: Option<String>,
 }
 
+#[derive(Deserialize)]
+pub struct CityQuery {
+    city: Option<String>,
+}
+
 /// Fetches all customers from the database
 pub async fn get_customers(
     Extension(pool): Extension<DbPool>,
@@ -32,7 +37,7 @@ pub async fn get_customers(
 ) -> Result<Json<Vec<Customer>>, AppError> {
     info!("GET /customers - fetching customers");
 
-    let mut conn = pool.get().map_err(AppError::PoolError)?;
+    let mut conn = pool.get()?;
 
     let mut query_builder = customer.select(Customer::as_select()).into_boxed();
 
@@ -66,7 +71,7 @@ pub async fn get_addresses(
 ) -> Result<Json<Vec<Address>>, AppError> {
     info!("GET /addresses - fetching addresses");
 
-    let mut conn = pool.get().map_err(AppError::PoolError)?;
+    let mut conn = pool.get()?;
 
     let mut query_builder = address.select(Address::as_select()).into_boxed();
 
@@ -81,7 +86,7 @@ pub async fn get_addresses(
         AppError::Database(e)
     })?;
 
-    if results.len() == 0 {
+    if results.is_empty() {
         warn!("GET /addresses - found 0 addresses");
         return Ok(Json(results));
     }
@@ -90,20 +95,28 @@ pub async fn get_addresses(
 }
 
 /// Fetches all cities from the database
-pub async fn get_cities(Extension(pool): Extension<DbPool>) -> Result<Json<Vec<City>>, AppError> {
+pub async fn get_cities(
+    Extension(pool): Extension<DbPool>,
+    Query(query): Query<CityQuery>,
+) -> Result<Json<Vec<City>>, AppError> {
     info!("GET /cities - fetching cities");
 
-    let mut conn = pool.get().map_err(AppError::PoolError)?;
+    let mut conn = pool.get()?;
 
-    let results = city
-        .select(City::as_select())
-        .load(&mut conn)
-        .map_err(|e| {
-            error!("Failed to fetch cities: {}", e);
-            AppError::Database(e)
-        })?;
+    let mut query_builder = city.select(City::as_select()).into_boxed();
 
-    if results.len() == 0 {
+    if let Some(city_val) = query.city {
+        info!("GET /cities - filtering by city: {}", city_val);
+        let pattern = format!("%{}%", city_val);
+        query_builder = query_builder.filter(city_col.ilike(pattern));
+    }
+
+    let results = query_builder.load(&mut conn).map_err(|e| {
+        error!("Failed to fetch cities: {}", e);
+        AppError::Database(e)
+    })?;
+
+    if results.is_empty() {
         warn!("GET /cities - found 0 cities");
         return Ok(Json(results));
     }
