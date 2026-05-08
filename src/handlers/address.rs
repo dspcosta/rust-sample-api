@@ -2,6 +2,7 @@ use log::{error, info, warn};
 
 use axum::extract::Extension;
 use axum::extract::Json;
+use axum::extract::Path;
 use axum::extract::Query;
 use axum::extract::rejection::JsonRejection;
 use axum::http::StatusCode;
@@ -10,7 +11,7 @@ use serde::Deserialize;
 
 use crate::db::DbPool;
 use crate::errors::AppError;
-use crate::models::address::{Address, NewAddress};
+use crate::models::address::{Address, NewAddress, UpdateAddress};
 use crate::schema::address::dsl::*;
 
 #[derive(Deserialize)]
@@ -67,4 +68,31 @@ pub async fn create_address(
 
     info!("POST /addresses - created address: {}", created.address_id);
     Ok((StatusCode::CREATED, Json(created)))
+}
+
+pub async fn update_address(
+    Extension(pool): Extension<DbPool>,
+    Path(id): Path<i32>,
+    body: Result<Json<UpdateAddress>, JsonRejection>,
+) -> Result<(StatusCode, Json<Address>), AppError> {
+    info!("PUT /addresses/{} - updating address", id);
+    let Json(update_data) = body.map_err(|e| AppError::BadRequest(e.body_text()))?;
+
+    let mut conn = pool.get()?;
+
+    let updated = diesel::update(address.filter(address_id.eq(id)))
+        .set(&update_data)
+        .get_result::<Address>(&mut conn)
+        .map_err(|e| {
+            error!("Failed to update address {}: {}", id, e);
+            match e {
+                diesel::result::Error::NotFound => {
+                    AppError::NotFound(format!("Address {} not found", id))
+                }
+                _ => AppError::Database(e),
+            }
+        })?;
+
+    info!("PUT /addresses/{} - updated successfully", id);
+    Ok((StatusCode::OK, Json(updated)))
 }

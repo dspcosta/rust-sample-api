@@ -24,3 +24,14 @@ pub struct NewAddress {
     pub postal_code: Option<String>,
     pub phone: String,
 }
+
+#[derive(AsChangeset, serde::Deserialize)]
+#[diesel(table_name = crate::schema::address)]
+pub struct UpdateAddress {
+    pub address_col: String,
+    pub address2: Option<String>,
+    pub district: String,
+    pub city_id: i16,
+    pub postal_code: Option<String>,
+    pub phone: String,
+}
