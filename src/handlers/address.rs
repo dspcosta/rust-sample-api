@@ -3,12 +3,14 @@ use log::{error, info, warn};
 use axum::extract::Extension;
 use axum::extract::Json;
 use axum::extract::Query;
+use axum::extract::rejection::JsonRejection;
+use axum::http::StatusCode;
 use diesel::prelude::*;
 use serde::Deserialize;
 
 use crate::db::DbPool;
 use crate::errors::AppError;
-use crate::models::address::Address;
+use crate::models::address::{Address, NewAddress};
 use crate::schema::address::dsl::*;
 
 #[derive(Deserialize)]
@@ -44,4 +46,25 @@ pub async fn get_addresses(
     }
     info!("GET /addresses - found {} addresses", results.len());
     Ok(Json(results))
+}
+
+pub async fn create_address(
+    Extension(pool): Extension<DbPool>,
+    body: Result<Json<NewAddress>, JsonRejection>,
+) -> Result<(StatusCode, Json<Address>), AppError> {
+    info!("POST /addresses - creating address");
+    let Json(new_address) = body.map_err(|e| AppError::BadRequest(e.body_text()))?;
+
+    let mut conn = pool.get()?;
+
+    let created = diesel::insert_into(address)
+        .values(&new_address)
+        .get_result::<Address>(&mut conn)
+        .map_err(|e| {
+            error!("Failed to create address: {}", e);
+            AppError::Database(e)
+        })?;
+
+    info!("POST /addresses - created address: {}", created.address_id);
+    Ok((StatusCode::CREATED, Json(created)))
 }

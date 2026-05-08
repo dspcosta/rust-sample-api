@@ -13,3 +13,14 @@ pub struct Address {
     pub phone: String,
     pub last_update: chrono::NaiveDateTime,
 }
+
+#[derive(Insertable, serde::Deserialize)]
+#[diesel(table_name = crate::schema::address)]
+pub struct NewAddress {
+    pub address_col: String, // Corresponds to #[sql_name = "address"] in schema
+    pub address2: Option<String>,
+    pub district: String,
+    pub city_id: i16,
+    pub postal_code: Option<String>,
+    pub phone: String,
+}
