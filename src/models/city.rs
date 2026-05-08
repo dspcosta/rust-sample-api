@@ -16,3 +16,10 @@ pub struct NewCity {
     pub city_col: String,
     pub country_id: i16,
 }
+
+#[derive(AsChangeset, serde::Deserialize)]
+#[diesel(table_name = crate::schema::city)]
+pub struct UpdateCity {
+    pub city_col: String,
+    pub country_id: i16,
+}

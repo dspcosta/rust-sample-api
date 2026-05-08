@@ -2,6 +2,7 @@ use log::{error, info, warn};
 
 use axum::extract::Extension;
 use axum::extract::Json;
+use axum::extract::Path;
 use axum::extract::Query;
 use axum::extract::rejection::JsonRejection;
 use axum::http::StatusCode;
@@ -10,7 +11,7 @@ use serde::Deserialize;
 
 use crate::db::DbPool;
 use crate::errors::AppError;
-use crate::models::city::{City, NewCity};
+use crate::models::city::{City, NewCity, UpdateCity};
 use crate::schema::city::dsl::*;
 
 #[derive(Deserialize)]
@@ -67,4 +68,31 @@ pub async fn create_city(
 
     info!("POST /cities - created city: {}", created.city_id);
     Ok((StatusCode::CREATED, Json(created)))
+}
+
+pub async fn update_city(
+    Extension(pool): Extension<DbPool>,
+    Path(id): Path<i32>,
+    body: Result<Json<UpdateCity>, JsonRejection>,
+) -> Result<(StatusCode, Json<City>), AppError> {
+    info!("PUT /cities/{} - updating city", id);
+    let Json(update_data) = body.map_err(|e| AppError::BadRequest(e.body_text()))?;
+
+    let mut conn = pool.get()?;
+
+    let updated = diesel::update(city.filter(city_id.eq(id)))
+        .set(&update_data)
+        .get_result::<City>(&mut conn)
+        .map_err(|e| {
+            error!("Failed to update city {}: {}", id, e);
+            match e {
+                diesel::result::Error::NotFound => {
+                    AppError::NotFound(format!("City {} not found", id))
+                }
+                _ => AppError::Database(e),
+            }
+        })?;
+
+    info!("PUT /cities/{} - updated successfully", id);
+    Ok((StatusCode::OK, Json(updated)))
 }
