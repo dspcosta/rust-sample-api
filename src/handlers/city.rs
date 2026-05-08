@@ -3,12 +3,14 @@ use log::{error, info, warn};
 use axum::extract::Extension;
 use axum::extract::Json;
 use axum::extract::Query;
+use axum::extract::rejection::JsonRejection;
+use axum::http::StatusCode;
 use diesel::prelude::*;
 use serde::Deserialize;
 
 use crate::db::DbPool;
 use crate::errors::AppError;
-use crate::models::city::City;
+use crate::models::city::{City, NewCity};
 use crate::schema::city::dsl::*;
 
 #[derive(Deserialize)]
@@ -44,4 +46,25 @@ pub async fn get_cities(
     }
     info!("GET /cities - found {} cities", results.len());
     Ok(Json(results))
+}
+
+pub async fn create_city(
+    Extension(pool): Extension<DbPool>,
+    body: Result<Json<NewCity>, JsonRejection>,
+) -> Result<(StatusCode, Json<City>), AppError> {
+    info!("POST /cities - creating city");
+    let Json(new_city) = body.map_err(|e| AppError::BadRequest(e.body_text()))?;
+
+    let mut conn = pool.get()?;
+
+    let created = diesel::insert_into(city)
+        .values(&new_city)
+        .get_result::<City>(&mut conn)
+        .map_err(|e| {
+            error!("Failed to create city: {}", e);
+            AppError::Database(e)
+        })?;
+
+    info!("POST /cities - created city: {}", created.city_id);
+    Ok((StatusCode::CREATED, Json(created)))
 }
