@@ -2,6 +2,7 @@ use log::{error, info, warn};
 
 use axum::extract::Extension;
 use axum::extract::Json;
+use axum::extract::Path;
 use axum::extract::Query;
 use axum::extract::rejection::JsonRejection;
 use axum::http::StatusCode;
@@ -10,7 +11,7 @@ use serde::Deserialize;
 
 use crate::db::DbPool;
 use crate::errors::AppError;
-use crate::models::customer::{Customer, NewCustomer};
+use crate::models::customer::{Customer, NewCustomer, UpdateCustomer};
 use crate::schema::customer::dsl::*;
 
 #[derive(Deserialize)]
@@ -69,6 +70,36 @@ pub async fn create_customer(
             AppError::Database(e)
         })?;
 
-    info!("POST /customers - created customer: {}", created.customer_id);
+    info!(
+        "POST /customers - created customer: {}",
+        created.customer_id
+    );
     Ok((StatusCode::CREATED, Json(created)))
+}
+
+pub async fn update_customer(
+    Extension(pool): Extension<DbPool>,
+    Path(id): Path<i32>,
+    body: Result<Json<UpdateCustomer>, JsonRejection>,
+) -> Result<(StatusCode, Json<Customer>), AppError> {
+    info!("PUT /customers/{} - updating customer", id);
+    let Json(update_data) = body.map_err(|e| AppError::BadRequest(e.body_text()))?;
+
+    let mut conn = pool.get()?;
+
+    let updated = diesel::update(customer.filter(customer_id.eq(id)))
+        .set(&update_data)
+        .get_result::<Customer>(&mut conn)
+        .map_err(|e| {
+            error!("Failed to update customer {}: {}", id, e);
+            match e {
+                diesel::result::Error::NotFound => {
+                    AppError::NotFound(format!("Customer {} not found", id))
+                }
+                _ => AppError::Database(e),
+            }
+        })?;
+
+    info!("PUT /customers/{} - updated successfully", id);
+    Ok((StatusCode::OK, Json(updated)))
 }
