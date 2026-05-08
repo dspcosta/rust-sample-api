@@ -16,3 +16,15 @@ pub struct Customer {
     pub last_update: Option<chrono::NaiveDateTime>,
     pub active: Option<i32>,
 }
+
+#[derive(Insertable, serde::Deserialize)]
+#[diesel(table_name = crate::schema::customer)]
+pub struct NewCustomer {
+    pub store_id: i16,
+    pub first_name: String,
+    pub last_name: String,
+    pub email: Option<String>,
+    pub address_id: i16,
+    pub activebool: bool,
+    pub active: Option<i32>,
+}

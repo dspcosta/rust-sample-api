@@ -3,12 +3,14 @@ use log::{error, info, warn};
 use axum::extract::Extension;
 use axum::extract::Json;
 use axum::extract::Query;
+use axum::extract::rejection::JsonRejection;
+use axum::http::StatusCode;
 use diesel::prelude::*;
 use serde::Deserialize;
 
 use crate::db::DbPool;
 use crate::errors::AppError;
-use crate::models::customer::Customer;
+use crate::models::customer::{Customer, NewCustomer};
 use crate::schema::customer::dsl::*;
 
 #[derive(Deserialize)]
@@ -48,4 +50,25 @@ pub async fn get_customers(
     }
     info!("GET /customers - found {} customers", results.len());
     Ok(Json(results))
+}
+
+pub async fn create_customer(
+    Extension(pool): Extension<DbPool>,
+    body: Result<Json<NewCustomer>, JsonRejection>,
+) -> Result<(StatusCode, Json<Customer>), AppError> {
+    info!("POST /customers - creating customer");
+    let Json(new_customer) = body.map_err(|e| AppError::BadRequest(e.body_text()))?;
+
+    let mut conn = pool.get()?;
+
+    let created = diesel::insert_into(customer)
+        .values(&new_customer)
+        .get_result::<Customer>(&mut conn)
+        .map_err(|e| {
+            error!("Failed to create customer: {}", e);
+            AppError::Database(e)
+        })?;
+
+    info!("POST /customers - created customer: {}", created.customer_id);
+    Ok((StatusCode::CREATED, Json(created)))
 }
