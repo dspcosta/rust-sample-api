@@ -1,6 +1,6 @@
-# Rust Sample API (Axum + Diesel)
+# Rust Demo API (Axum + Diesel)
 
-A simple sample Rust REST API for demo purposes built with **Rust**, **Axum**, and **Diesel**, backed by a PostgreSQL database.
+A Rust REST API for demo purposes built with **Rust**, **Axum**, and **Diesel**, backed by a PostgreSQL database.
 
 ## Prerequisites
 
