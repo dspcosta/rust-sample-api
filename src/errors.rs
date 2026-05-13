@@ -15,6 +15,7 @@ pub enum AppError {
     BadRequest(String),
     PoolError(r2d2::PoolError),
     NotFound(String),
+    Unauthorized(String),
 }
 
 impl IntoResponse for AppError {
@@ -27,6 +28,7 @@ impl IntoResponse for AppError {
                 (axum::http::StatusCode::INTERNAL_SERVER_ERROR, p.to_string())
             }
             AppError::NotFound(e) => (axum::http::StatusCode::NOT_FOUND, e.to_string()),
+            AppError::Unauthorized(e) => (axum::http::StatusCode::UNAUTHORIZED, e.to_string()),
         };
         (status, Json(ErrorMessage { message })).into_response()
     }
