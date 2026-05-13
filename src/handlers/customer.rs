@@ -1,3 +1,4 @@
+use axum::{routing::get, routing::put};
 use log::{error, info, warn};
 
 use axum::extract::Extension;
@@ -17,6 +18,15 @@ use crate::schema::customer::dsl::*;
 #[derive(Deserialize)]
 pub struct CustomerQuery {
     create_date: Option<String>,
+}
+
+pub fn router() -> axum::Router {
+    axum::Router::new()
+        .route("/customers", get(get_customers).post(create_customer))
+        .route(
+            "/customers/{id}",
+            put(update_customer).delete(delete_customer),
+        )
 }
 
 /// Fetches all customers from the database
@@ -102,4 +112,21 @@ pub async fn update_customer(
 
     info!("PUT /customers/{} - updated successfully", id);
     Ok((StatusCode::OK, Json(updated)))
+}
+
+pub async fn delete_customer(
+    Extension(pool): Extension<DbPool>,
+    Path(id): Path<i32>,
+) -> Result<StatusCode, AppError> {
+    let mut conn = pool.get()?;
+
+    diesel::delete(customer.filter(customer_id.eq(id)))
+        .execute(&mut conn)
+        .map_err(|e| {
+            error!("Failed to delete customer {}: {}", id, e);
+            AppError::Database(e)
+        })?;
+
+    info!("DELETE /customers/{} - deleted successfully", id);
+    Ok(StatusCode::OK)
 }
