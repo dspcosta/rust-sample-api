@@ -1,3 +1,4 @@
+use axum::{routing::get, routing::put};
 use log::{error, info, warn};
 
 use axum::extract::Extension;
@@ -17,6 +18,12 @@ use crate::schema::city::dsl::*;
 #[derive(Deserialize)]
 pub struct CityQuery {
     city: Option<String>,
+}
+
+pub fn router() -> axum::Router {
+    axum::Router::new()
+        .route("/cities", get(get_cities).post(create_city))
+        .route("/cities/{id}", put(update_city).delete(delete_city))
 }
 
 /// Fetches all cities from the database
@@ -95,4 +102,28 @@ pub async fn update_city(
 
     info!("PUT /cities/{} - updated successfully", id);
     Ok((StatusCode::OK, Json(updated)))
+}
+
+pub async fn delete_city(
+    Extension(pool): Extension<DbPool>,
+    Path(id): Path<i32>,
+) -> Result<StatusCode, AppError> {
+    info!("DELETE /cities/{} - deleting city", id);
+
+    let mut conn = pool.get()?;
+
+    let rows_deleted = diesel::delete(city.filter(city_id.eq(id)))
+        .execute(&mut conn)
+        .map_err(|e| {
+            error!("Failed to delete city {}: {}", id, e);
+            AppError::Database(e)
+        })?;
+
+    if rows_deleted == 0 {
+        warn!("DELETE /cities/{} - not found", id);
+        return Err(AppError::NotFound(format!("City {} not found", id)));
+    }
+
+    info!("DELETE /cities/{} - deleted successfully", id);
+    Ok(StatusCode::NO_CONTENT)
 }
