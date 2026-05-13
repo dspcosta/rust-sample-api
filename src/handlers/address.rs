@@ -1,3 +1,4 @@
+use axum::{routing::get, routing::put};
 use log::{error, info, warn};
 
 use axum::extract::Extension;
@@ -17,6 +18,15 @@ use crate::schema::address::dsl::*;
 #[derive(Deserialize)]
 pub struct AddressQuery {
     district: Option<String>,
+}
+
+pub fn router() -> axum::Router {
+    axum::Router::new()
+        .route("/addresses", get(get_addresses).post(create_address))
+        .route(
+            "/addresses/{id}",
+            put(update_address).delete(delete_address),
+        )
 }
 
 /// Fetches all addresses from the database
@@ -95,4 +105,28 @@ pub async fn update_address(
 
     info!("PUT /addresses/{} - updated successfully", id);
     Ok((StatusCode::OK, Json(updated)))
+}
+
+pub async fn delete_address(
+    Extension(pool): Extension<DbPool>,
+    Path(id): Path<i32>,
+) -> Result<StatusCode, AppError> {
+    info!("DELETE /addresses/{} - deleting address", id);
+
+    let mut conn = pool.get()?;
+
+    let rows_deleted = diesel::delete(address.filter(address_id.eq(id)))
+        .execute(&mut conn)
+        .map_err(|e| {
+            error!("Failed to delete address {}: {}", id, e);
+            AppError::Database(e)
+        })?;
+
+    if rows_deleted == 0 {
+        warn!("DELETE /addresses/{} - not found", id);
+        return Err(AppError::NotFound(format!("Address {} not found", id)));
+    }
+
+    info!("DELETE /addresses/{} - deleted successfully", id);
+    Ok(StatusCode::NO_CONTENT)
 }
