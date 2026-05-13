@@ -1,6 +1,6 @@
 use std::time::Duration;
 
-use axum::{Router, extract::Extension, routing::get, routing::put};
+use axum::{Router, extract::Extension, routing::get};
 
 mod db;
 mod errors;
@@ -22,21 +22,9 @@ async fn main() {
             "/",
             get(|| async { "Hello from a demo API built with Rust and Axum!" }),
         )
-        .route(
-            "/customers",
-            get(handlers::customer::get_customers).post(handlers::customer::create_customer),
-        )
-        .route("/customers/{id}", put(handlers::customer::update_customer))
-        .route(
-            "/addresses",
-            get(handlers::address::get_addresses).post(handlers::address::create_address),
-        )
-        .route("/addresses/{id}", put(handlers::address::update_address))
-        .route(
-            "/cities",
-            get(handlers::city::get_cities).post(handlers::city::create_city),
-        )
-        .route("/cities/{id}", put(handlers::city::update_city))
+        .merge(handlers::customer::router())
+        .merge(handlers::address::router())
+        .merge(handlers::city::router())
         .layer(Extension(pool));
 
     let listener = tokio::net::TcpListener::bind("0.0.0.0:3000")
