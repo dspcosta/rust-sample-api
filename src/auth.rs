@@ -1,4 +1,5 @@
 use axum::extract::Request;
+use axum::http::StatusCode;
 use axum::http::header;
 use axum::middleware::Next;
 use axum::response::{IntoResponse, Response};
@@ -10,7 +11,16 @@ use crate::errors::AppError;
 #[derive(Debug, serde::Serialize, serde::Deserialize)]
 pub struct Claims {
     pub sub: String,
-    pub exp: usize,
+    pub exp: u64,
+}
+
+pub async fn log_rate_limit(req: Request, next: Next) -> Response {
+    let uri = req.uri().to_string();
+    let response = next.run(req).await;
+    if response.status() == StatusCode::TOO_MANY_REQUESTS {
+        warn!("Rate limit exceeded: {}", uri);
+    }
+    response
 }
 
 pub async fn auth_middleware(req: Request, next: Next) -> Response {
