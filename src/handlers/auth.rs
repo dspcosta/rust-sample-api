@@ -5,6 +5,8 @@ use serde::{Deserialize, Serialize};
 
 use crate::auth::Claims;
 use crate::errors::AppError;
+use humantime::format_rfc3339_millis;
+use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
 #[derive(Deserialize)]
 pub struct LoginRequest {
@@ -15,7 +17,7 @@ pub struct LoginRequest {
 #[derive(Serialize)]
 pub struct LoginResponse {
     pub token: String,
-    pub expires_in: usize,
+    pub expires_in: String,
 }
 
 pub async fn login(Json(body): Json<LoginRequest>) -> Result<Json<LoginResponse>, AppError> {
@@ -37,11 +39,11 @@ pub async fn login(Json(body): Json<LoginRequest>) -> Result<Json<LoginResponse>
 
     let secret = std::env::var("JWT_SECRET").unwrap_or_else(|_| "secret".to_string());
 
-    let exp = (std::time::SystemTime::now()
-        .duration_since(std::time::UNIX_EPOCH)
+    let exp = (SystemTime::now()
+        .duration_since(UNIX_EPOCH)
         .unwrap()
         .as_secs()
-        + 3600) as usize; // Adding 1 hour to the current time
+        + 3600) as u64; // Adding 1 hour to the current time
 
     let claims = Claims {
         sub: body.username.clone(),
@@ -60,9 +62,11 @@ pub async fn login(Json(body): Json<LoginRequest>) -> Result<Json<LoginResponse>
         body.username
     );
 
+    let human_readable_expiry = format_rfc3339_millis(UNIX_EPOCH + Duration::from_secs(exp));
+
     let response = LoginResponse {
         token,
-        expires_in: exp,
+        expires_in: human_readable_expiry.to_string(),
     };
     Ok(Json(response))
 }
